@@ -1,0 +1,39 @@
+Some notes about using falcor etc!
+* talk about what falcor is, who makes it, who it's for, etc.
+* talk about what you were setting out to do (compare using mips against summed area tables for mipmapping)
+
+Why the idea of falcor is so appealing to me:
+* man i want to try implementing some random idea i had or read about.
+* ugh my dx12 rendering engine isn't done and i don't feel like working on it more right now. it's not what interests me or helps me be better.
+* Falcor: mine is.... use it, you have no excuse!
+* Unity: use me    Me: I'm a C++ graphics / engine programmer. Whatever i do in C#, in an engine that i have to work around "how do i do this in this engine" where you sometimes have to jump through hoops... all this = my stuff won't translate well to where I want to actually use it.
+* WebGL or Shadertoy: shadertoy is nice but limited. WebGL could work but it's missing features. Also to both: my work decays over time as the standards change.
+* Falcor: use me.  Me: ok.
+* Falcor: imgui, image loading, model loading. dx12 and vulkan support. soon will have DXR support (not that any of us will have dxr cards any time soon really!)
+
+* first grabbed falcor, didn't compile.
+ * I filed an issue: https://github.com/NVIDIAGameWorks/Falcor/issues/61
+ * couldn't work around it
+ * soon got a reply that a fix was in a branch. I got that branch and it worked woo!
+
+* Followed the isntructions for making a new project
+ * in the readme at https://github.com/NVIDIAGameWorks/Falcor/tree/dev-3.0
+ * took a couple tries but i got it. Failures on my part, I couldn't figure out how to add a property sheet file honestly.
+
+* compile times for falcor itself kinda take a while but it's a one time cost
+* im feeling a bit doubtful about how they say to hook falcor into your project
+ * i'd rather link against a lib, so people can grab my github repo and "just go"
+ * only one windows though i guess....
+ * and building from source is nice, when it works!
+ * don't want to duplicate their repo into every little project i make though...
+ * i don't want this hard to figure out dependency though
+ * will have to think about it some more...
+* I also worry what will happen when i update falcor and my existing projects start failing to compile etc.
+ * a package manager could be nice maybe, specifying what version something uses.
+
+* I copy / pasted the modelviewer .cpp and .h file since it said to start by looking at that project
+ * built, ran, complained on startup about a missing shader. oops, fixed by copying the data folder from the model viewer to my project too.
+ * built, ran, it complained about the arcade model missing.  oops. found that in the falcor media and copied that folder and subfolders into my data folder.
+ * hooray it worked!
+
+time to start hacking... :p
