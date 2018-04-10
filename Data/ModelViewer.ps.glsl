@@ -29,19 +29,23 @@ __import ShaderCommon;
 __import Shading;
 __import DefaultVS;
 
-cbuffer PerFrameCB : register(b0)
+in VS_OUT vOut;
+
+layout(set = 0, binding = 0) uniform PerFrameCB
 {
     LightData gDirLight;
     LightData gPointLight;
     bool gConstColor;
-    float3 gAmbient;
+    vec3 gAmbient;
 };
 
-float4 main(VS_OUT vOut) : SV_TARGET
+layout(location = 0) out vec4 fragColor;
+
+void main()
 {
     if(gConstColor)
     {
-        return float4(0, 1, 0, 1);
+        fragColor = vec4(0, 1, 0, 1);
     }
     else
     {
@@ -56,7 +60,6 @@ float4 main(VS_OUT vOut) : SV_TARGET
         // Point light
         evalMaterial(shAttr, gPointLight, result, false);
 
-        float4 finalColor = float4(result.finalValue + gAmbient * result.diffuseAlbedo, 1.f);
-        return finalColor;
+        fragColor = vec4(result.finalValue + gAmbient * result.diffuseAlbedo, 1.f);
     }
 }

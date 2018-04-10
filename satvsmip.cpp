@@ -27,11 +27,9 @@
 ***************************************************************************/
 #include "satvsmip.h"
 
-const std::string ModelViewer::skDefaultModel = "Arcade/Arcade.fbx";
-
 void ModelViewer::deleteCulledMeshes()
 {
-    if(mpModel)
+    if (mpModel)
     {
         CpuTimer timer;
         timer.update();
@@ -44,7 +42,7 @@ void ModelViewer::deleteCulledMeshes()
 
 CameraController& ModelViewer::getActiveCameraController()
 {
-    switch(mCameraType)
+    switch (mCameraType)
     {
     case ModelViewer::ModelViewCamera:
         return mModelViewCameraController;
@@ -72,7 +70,7 @@ void ModelViewer::setModelString(bool isAfterCull, float loadTime)
     mModelString += std::to_string(mpModel->getBufferCount()) + " buffers.\n";
 }
 
-void ModelViewer::loadModelFromFile(const std::string& filename, ResourceFormat fboFormat)
+void ModelViewer::loadModelFromFile(const std::string& filename)
 {
     CpuTimer timer;
     timer.update();
@@ -82,11 +80,11 @@ void ModelViewer::loadModelFromFile(const std::string& filename, ResourceFormat 
     {
         flags |= Model::LoadFlags::DontGenerateTangentSpace;
     }
-
+    auto fboFormat = mpDefaultFBO->getColorTexture(0)->getFormat();
     flags |= isSrgbFormat(fboFormat) ? Model::LoadFlags::None : Model::LoadFlags::AssumeLinearSpaceTextures;
     mpModel = Model::createFromFile(filename.c_str(), flags);
 
-    if(mpModel == nullptr)
+    if (mpModel == nullptr)
     {
         msgBox("Could not load model");
         return;
@@ -100,82 +98,77 @@ void ModelViewer::loadModelFromFile(const std::string& filename, ResourceFormat 
 
     mActiveAnimationID = kBindPoseAnimationID;
     setModelString(false, timer.getElapsedTime());
-
-    mpModel->bindSamplerToMaterials(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
 }
 
-void ModelViewer::loadModel(ResourceFormat fboFormat)
+void ModelViewer::loadModel()
 {
     std::string Filename;
-    if(openFileDialog(Model::kSupportedFileFormatsStr, Filename))
+    if (openFileDialog(Model::kSupportedFileFormatsStr, Filename))
     {
-        loadModelFromFile(Filename, fboFormat);
+        loadModelFromFile(Filename);
     }
 }
 
 void ModelViewer::saveModel()
 {
-    if(mpModel == nullptr)
+    if (mpModel == nullptr)
     {
         msgBox("No model was loaded. Nothing to save");
         return;
 
     }
     std::string filename;
-    if(saveFileDialog("Binary Model\0*.bin\0\0", filename))
+    if (saveFileDialog("Binary Model\0*.bin\0\0", filename))
     {
         mpModel->exportToBinaryFile(filename);
     }
 }
 
-void ModelViewer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
+void ModelViewer::onGuiRender()
 {
     // Load model group
-    if (pGui->addButton("Load Model"))
+    if (mpGui->addButton("Load Model"))
     {
-        loadModel(pSample->getCurrentFbo()->getColorTexture(0)->getFormat());
+        loadModel();
     }
-    if (pGui->beginGroup("Load Options"))
+    if (mpGui->beginGroup("Load Options"))
     {
-        pGui->addCheckBox("Generate Tangent Space", mGenerateTangentSpace);
-        if (pGui->addButton("Export Model To Binary File"))
+        mpGui->addCheckBox("Generate Tangent Space", mGenerateTangentSpace);
+        if (mpGui->addButton("Export Model To Binary File"))
         {
             saveModel();
         }
-        if (pGui->addButton("Delete Culled Meshes"))
+        if (mpGui->addButton("Delete Culled Meshes"))
         {
             deleteCulledMeshes();
         }
-        pGui->endGroup();
+        mpGui->endGroup();
     }
 
-    pGui->addSeparator();
-    pGui->addCheckBox("Wireframe", mDrawWireframe);
-    if (pGui->addCheckBox("TriLinear Filtering", mUseTriLinearFiltering))
-    {
-        mpModel->bindSamplerToMaterials(mUseTriLinearFiltering ? mpLinearSampler : mpPointSampler);
-    }
+    mpGui->addSeparator();
+    mpGui->addCheckBox("Wireframe", mDrawWireframe);
+    mpGui->addCheckBox("TriLinear Filtering", mUseTriLinearFiltering);
 
     Gui::DropdownList cullList;
     cullList.push_back({ 0, "No Culling" });
     cullList.push_back({ 1, "Backface Culling" });
     cullList.push_back({ 2, "Frontface Culling" });
-    pGui->addDropdown("Cull Mode", cullList, mCullMode);
+    mpGui->addDropdown("Cull Mode", cullList, mCullMode);
 
-    if (pGui->beginGroup("Lights"))
+    if (mpGui->beginGroup("Lights"))
     {
-        pGui->addRgbColor("Ambient intensity", mAmbientIntensity);
-        if (pGui->beginGroup("Directional Light"))
+        mpGui->addRgbColor("Ambient intensity", mAmbientIntensity);
+        if (mpGui->beginGroup("Directional Light"))
         {
-            mpDirLight->renderUI(pGui);
-            pGui->endGroup();
+            mpDirLight->renderUI(mpGui.get());
+            mpGui->endGroup();
         }
-        if (pGui->beginGroup("Point Light"))
+        if (mpGui->beginGroup("Point Light"))
         {
-            mpPointLight->renderUI(pGui);
-            pGui->endGroup();
+            mpPointLight->renderUI(mpGui.get());
+            mpGui->endGroup();
         }
-        pGui->endGroup();
+        mpGui->endGroup();
     }
 
     Gui::DropdownList cameraDropdown;
@@ -183,57 +176,57 @@ void ModelViewer::onGuiRender(SampleCallbacks* pSample, Gui* pGui)
     cameraDropdown.push_back({ FirstPersonCamera, "First-Person" });
     cameraDropdown.push_back({ SixDoFCamera, "6 DoF" });
 
-    pGui->addDropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType);
+    mpGui->addDropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType);
 
-    if(mpModel)
+    if (mpModel)
     {
-        renderModelUI(pGui);
+        renderModelUI();
     }
 }
 
-void ModelViewer::renderModelUI(Gui* pGui)
+void ModelViewer::renderModelUI()
 {
     bool bAnim = mpModel && mpModel->hasAnimations();
     static const char* animateStr = "Animate";
     static const char* activeAnimStr = "Active Animation";
 
-    if(bAnim)
+    if (bAnim)
     {
-        pGui->addCheckBox(animateStr, mAnimate);
+        mpGui->addCheckBox(animateStr, mAnimate);
         Gui::DropdownList list;
         list.resize(mpModel->getAnimationsCount() + 1);
         list[0].label = "Bind Pose";
         list[0].value = kBindPoseAnimationID;
 
-        for(uint32_t i = 0; i < mpModel->getAnimationsCount(); i++)
+        for (uint32_t i = 0; i < mpModel->getAnimationsCount(); i++)
         {
             list[i + 1].value = i;
             list[i + 1].label = mpModel->getAnimationName(i);
-            if(list[i + 1].label.size() == 0)
+            if (list[i + 1].label.size() == 0)
             {
                 list[i + 1].label = std::to_string(i);
             }
         }
 
-        if (pGui->addDropdown(activeAnimStr, list, mActiveAnimationID))
+        if (mpGui->addDropdown(activeAnimStr, list, mActiveAnimationID))
         {
             mpModel->setActiveAnimation(mActiveAnimationID);
         }
     }
 
     const float minDepth = mpModel->getRadius() * 1 / 1000;
-    if(pGui->beginGroup("Depth Range"))
+    if (mpGui->beginGroup("Depth Range"))
     {
-        pGui->addFloatVar("Near Plane", mNearZ, minDepth, mpModel->getRadius() * 15, minDepth * 5);
-        pGui->addFloatVar("Far Plane", mFarZ, minDepth, mpModel->getRadius() * 15, minDepth * 5);
-        pGui->endGroup();
+        mpGui->addFloatVar("Near Plane", mNearZ, minDepth, mpModel->getRadius() * 15, minDepth * 5);
+        mpGui->addFloatVar("Far Plane", mFarZ, minDepth, mpModel->getRadius() * 15, minDepth * 5);
+        mpGui->endGroup();
     }
 }
 
-void ModelViewer::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext)
+void ModelViewer::onLoad()
 {
     mpCamera = Camera::create();
-    mpProgram = GraphicsProgram::createFromFile("ModelViewer.ps.hlsl", "", "main");
+    mpProgram = GraphicsProgram::createFromFile("", appendShaderExtension("ModelViewer.ps"));
 
     // create rasterizer state
     RasterizerState::Desc wireframeDesc;
@@ -270,33 +263,31 @@ void ModelViewer::onLoad(SampleCallbacks* pSample, RenderContext::SharedPtr pRen
     mpPointLight = PointLight::create();
     mpDirLight->setWorldDirection(glm::vec3(0.13f, 0.27f, -0.9f));
 
-    mpProgramVars = GraphicsVars::create(mpProgram->getReflector());
+    mpProgramVars = GraphicsVars::create(mpProgram->getActiveVersion()->getReflector());
     mpGraphicsState = GraphicsState::create();
     mpGraphicsState->setProgram(mpProgram);
-
-    loadModelFromFile(skDefaultModel, pRenderContext->getGraphicsState()->getFbo()->getColorTexture(0)->getFormat());
 }
 
-void ModelViewer::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedPtr pRenderContext, Fbo::SharedPtr pTargetFbo)
+void ModelViewer::onFrameRender()
 {
     const glm::vec4 clearColor(0.38f, 0.52f, 0.10f, 1);
-    pRenderContext->clearFbo(pTargetFbo.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
-    mpGraphicsState->setFbo(pTargetFbo);
+    mpRenderContext->clearFbo(mpDefaultFBO.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
+    mpGraphicsState->setFbo(mpDefaultFBO);
 
-    if(mpModel)
+    if (mpModel)
     {
         mpCamera->setDepthRange(mNearZ, mFarZ);
         getActiveCameraController().update();
 
         // Animate
-        if(mAnimate)
+        if (mAnimate)
         {
             PROFILE(animate);
-            mpModel->animate(pSample->getCurrentTime());
+            mpModel->animate(mCurrentTime);
         }
 
         // Set render state
-        if(mDrawWireframe)
+        if (mDrawWireframe)
         {
             mpGraphicsState->setRasterizerState(mpWireframeRS);
             mpGraphicsState->setDepthStencilState(mpNoDepthDS);
@@ -308,29 +299,42 @@ void ModelViewer::onFrameRender(SampleCallbacks* pSample, RenderContext::SharedP
             mpGraphicsState->setDepthStencilState(mpDepthTestDS);
             mpProgramVars["PerFrameCB"]["gConstColor"] = false;
 
-            ConstantBuffer* pCB = mpProgramVars["PerFrameCB"].get();
-            mpDirLight->setIntoProgramVars(mpProgramVars.get(), pCB, "gDirLight");
-            mpPointLight->setIntoProgramVars(mpProgramVars.get(), pCB, "gPointLight");
+            mpDirLight->setIntoConstantBuffer(mpProgramVars["PerFrameCB"].get(), "gDirLight");
+            mpPointLight->setIntoConstantBuffer(mpProgramVars["PerFrameCB"].get(), "gPointLight");
+        }
+
+        if (mUseTriLinearFiltering)
+        {
+            mpModel->bindSamplerToMaterials(mpLinearSampler);
+        }
+        else
+        {
+            mpModel->bindSamplerToMaterials(mpPointSampler);
         }
 
         mpProgramVars["PerFrameCB"]["gAmbient"] = mAmbientIntensity;
         mpGraphicsState->setProgram(mpProgram);
-        pRenderContext->setGraphicsState(mpGraphicsState);
-        pRenderContext->setGraphicsVars(mpProgramVars);
-        ModelRenderer::render(pRenderContext.get(), mpModel, mpCamera.get());
+        mpRenderContext->setGraphicsState(mpGraphicsState);
+        mpRenderContext->setGraphicsVars(mpProgramVars);
+        ModelRenderer::render(mpRenderContext.get(), mpModel, mpCamera.get());
     }
 
-    pSample->renderText(mModelString, glm::vec2(10, 30));
+    renderText(mModelString, glm::vec2(10, 30));
 }
 
-bool ModelViewer::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyEvent)
+void ModelViewer::onShutdown()
+{
+
+}
+
+bool ModelViewer::onKeyEvent(const KeyboardEvent& keyEvent)
 {
     bool bHandled = getActiveCameraController().onKeyEvent(keyEvent);
-    if(bHandled == false)
+    if (bHandled == false)
     {
-        if(keyEvent.type == KeyboardEvent::Type::KeyPressed)
+        if (keyEvent.type == KeyboardEvent::Type::KeyPressed)
         {
-            switch(keyEvent.key)
+            switch (keyEvent.key)
             {
             case KeyboardEvent::Key::R:
                 resetCamera();
@@ -342,24 +346,24 @@ bool ModelViewer::onKeyEvent(SampleCallbacks* pSample, const KeyboardEvent& keyE
     return bHandled;
 }
 
-bool ModelViewer::onMouseEvent(SampleCallbacks* pSample, const MouseEvent& mouseEvent)
+bool ModelViewer::onMouseEvent(const MouseEvent& mouseEvent)
 {
     return getActiveCameraController().onMouseEvent(mouseEvent);
 }
 
-void ModelViewer::onResizeSwapChain(SampleCallbacks* pSample, uint32_t width, uint32_t height)
+void ModelViewer::onResizeSwapChain()
 {
-    float h = (float)height;
-    float w = (float)width;
+    float height = (float)mpDefaultFBO->getHeight();
+    float width = (float)mpDefaultFBO->getWidth();
 
     mpCamera->setFocalLength(21.0f);
-    float aspectRatio = (w / h);
+    float aspectRatio = (width / height);
     mpCamera->setAspectRatio(aspectRatio);
 }
 
 void ModelViewer::resetCamera()
 {
-    if(mpModel)
+    if (mpModel)
     {
         // update the camera position
         float Radius = mpModel->getRadius();
@@ -387,17 +391,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 int main(int argc, char** argv)
 #endif
 {
-    ModelViewer::UniquePtr pRenderer = std::make_unique<ModelViewer>();
-
+    ModelViewer modelViewer;
     SampleConfig config;
     config.windowDesc.title = "Falcor Model Viewer";
     config.windowDesc.resizableWindow = true;
 #ifdef _WIN32
-    Sample::run(config, pRenderer);
+    modelViewer.run(config);
 #else
-    config.argc = (uint32_t)argc;
-    config.argv = argv;
-    Sample::run(config, pRenderer);
+    modelViewer.run(config, (uint32_t)argc, argv);
 #endif
     return 0;
 }
