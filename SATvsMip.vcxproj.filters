@@ -6,4 +6,19 @@
   <ItemGroup>
     <ClInclude Include="satvsmip.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Data">
+      <UniqueIdentifier>{282eaaaf-b137-491d-afc3-cf5ea73be3f2}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Data\ModelViewer.ps.hlsl">
+      <Filter>Data</Filter>
+    </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data\ModelViewer.ps.glsl">
+      <Filter>Data</Filter>
+    </None>
+  </ItemGroup>
 </Project>

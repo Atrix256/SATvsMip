@@ -27,19 +27,6 @@
 ***************************************************************************/
 #include "satvsmip.h"
 
-void ModelViewer::deleteCulledMeshes()
-{
-    if (mpModel)
-    {
-        CpuTimer timer;
-        timer.update();
-        mpModel->deleteCulledMeshes(mpCamera.get());
-        timer.update();
-
-        setModelString(true, timer.getElapsedTime());
-    }
-}
-
 CameraController& ModelViewer::getActiveCameraController()
 {
     switch (mCameraType)
@@ -56,96 +43,8 @@ CameraController& ModelViewer::getActiveCameraController()
     }
 }
 
-void ModelViewer::setModelString(bool isAfterCull, float loadTime)
-{
-    mModelString = isAfterCull ? "Mesh culling" : "Loading";
-    mModelString += " took " + std::to_string(loadTime) + " seconds.\n";
-    mModelString += "Model has " + std::to_string(mpModel->getVertexCount()) + " vertices, ";
-    mModelString += std::to_string(mpModel->getIndexCount()) + " indices, ";
-    mModelString += std::to_string(mpModel->getPrimitiveCount()) + " primitives, ";
-    mModelString += std::to_string(mpModel->getMeshCount()) + " meshes, ";
-    mModelString += std::to_string(mpModel->getInstanceCount()) + " mesh instances, ";
-    mModelString += std::to_string(mpModel->getMaterialCount()) + " materials, ";
-    mModelString += std::to_string(mpModel->getTextureCount()) + " textures, ";
-    mModelString += std::to_string(mpModel->getBufferCount()) + " buffers.\n";
-}
-
-void ModelViewer::loadModelFromFile(const std::string& filename)
-{
-    CpuTimer timer;
-    timer.update();
-
-    Model::LoadFlags flags = Model::LoadFlags::None;
-    if (mGenerateTangentSpace == false)
-    {
-        flags |= Model::LoadFlags::DontGenerateTangentSpace;
-    }
-    auto fboFormat = mpDefaultFBO->getColorTexture(0)->getFormat();
-    flags |= isSrgbFormat(fboFormat) ? Model::LoadFlags::None : Model::LoadFlags::AssumeLinearSpaceTextures;
-    mpModel = Model::createFromFile(filename.c_str(), flags);
-
-    if (mpModel == nullptr)
-    {
-        msgBox("Could not load model");
-        return;
-    }
-    resetCamera();
-
-    float radius = mpModel->getRadius();
-    float lightHeight = max(1.0f + radius, radius*1.25f);
-    mpPointLight->setWorldPosition(glm::vec3(0, lightHeight, 0));
-    timer.update();
-
-    mActiveAnimationID = kBindPoseAnimationID;
-    setModelString(false, timer.getElapsedTime());
-}
-
-void ModelViewer::loadModel()
-{
-    std::string Filename;
-    if (openFileDialog(Model::kSupportedFileFormatsStr, Filename))
-    {
-        loadModelFromFile(Filename);
-    }
-}
-
-void ModelViewer::saveModel()
-{
-    if (mpModel == nullptr)
-    {
-        msgBox("No model was loaded. Nothing to save");
-        return;
-
-    }
-    std::string filename;
-    if (saveFileDialog("Binary Model\0*.bin\0\0", filename))
-    {
-        mpModel->exportToBinaryFile(filename);
-    }
-}
-
 void ModelViewer::onGuiRender()
 {
-    // Load model group
-    if (mpGui->addButton("Load Model"))
-    {
-        loadModel();
-    }
-    if (mpGui->beginGroup("Load Options"))
-    {
-        mpGui->addCheckBox("Generate Tangent Space", mGenerateTangentSpace);
-        if (mpGui->addButton("Export Model To Binary File"))
-        {
-            saveModel();
-        }
-        if (mpGui->addButton("Delete Culled Meshes"))
-        {
-            deleteCulledMeshes();
-        }
-        mpGui->endGroup();
-    }
-
-    mpGui->addSeparator();
     mpGui->addCheckBox("Wireframe", mDrawWireframe);
     mpGui->addCheckBox("TriLinear Filtering", mUseTriLinearFiltering);
 
@@ -177,50 +76,6 @@ void ModelViewer::onGuiRender()
     cameraDropdown.push_back({ SixDoFCamera, "6 DoF" });
 
     mpGui->addDropdown("Camera Type", cameraDropdown, (uint32_t&)mCameraType);
-
-    if (mpModel)
-    {
-        renderModelUI();
-    }
-}
-
-void ModelViewer::renderModelUI()
-{
-    bool bAnim = mpModel && mpModel->hasAnimations();
-    static const char* animateStr = "Animate";
-    static const char* activeAnimStr = "Active Animation";
-
-    if (bAnim)
-    {
-        mpGui->addCheckBox(animateStr, mAnimate);
-        Gui::DropdownList list;
-        list.resize(mpModel->getAnimationsCount() + 1);
-        list[0].label = "Bind Pose";
-        list[0].value = kBindPoseAnimationID;
-
-        for (uint32_t i = 0; i < mpModel->getAnimationsCount(); i++)
-        {
-            list[i + 1].value = i;
-            list[i + 1].label = mpModel->getAnimationName(i);
-            if (list[i + 1].label.size() == 0)
-            {
-                list[i + 1].label = std::to_string(i);
-            }
-        }
-
-        if (mpGui->addDropdown(activeAnimStr, list, mActiveAnimationID))
-        {
-            mpModel->setActiveAnimation(mActiveAnimationID);
-        }
-    }
-
-    const float minDepth = mpModel->getRadius() * 1 / 1000;
-    if (mpGui->beginGroup("Depth Range"))
-    {
-        mpGui->addFloatVar("Near Plane", mNearZ, minDepth, mpModel->getRadius() * 15, minDepth * 5);
-        mpGui->addFloatVar("Far Plane", mFarZ, minDepth, mpModel->getRadius() * 15, minDepth * 5);
-        mpGui->endGroup();
-    }
 }
 
 void ModelViewer::onLoad()
@@ -266,6 +121,81 @@ void ModelViewer::onLoad()
     mpProgramVars = GraphicsVars::create(mpProgram->getActiveVersion()->getReflector());
     mpGraphicsState = GraphicsState::create();
     mpGraphicsState->setProgram(mpProgram);
+
+    // create a model
+    {
+        struct Vertex
+        {
+            glm::vec4 position;
+        };
+
+        static const Vertex kVertices[] =
+        {
+            { glm::vec4(0.5, 0.5, 0.5, 1.0f) },
+            { glm::vec4(0.7, 0.5, 0.5, 1.0f) },
+            { glm::vec4(0.7, 0.7, 0.5, 1.0f) },
+        };
+
+        static const uint32_t kIndices[] =
+        {
+            0, 1, 2
+        };
+
+        // create vertex buffer
+        const uint32_t vbSize = (uint32_t)(sizeof(Vertex)*arraysize(kVertices));
+        spVertexBuffer = Buffer::create(vbSize, Buffer::BindFlags::Vertex, Buffer::CpuAccess::Write, (void*)kVertices);
+
+        // create index buffer
+        const uint32_t ibSize = (uint32_t)sizeof(kIndices);
+        spIndexBuffer = Buffer::create(ibSize, Buffer::BindFlags::Index, Buffer::CpuAccess::Write, (void*)kIndices);
+
+        // create VAO
+        VertexLayout::SharedPtr pLayout = VertexLayout::create();
+        VertexBufferLayout::SharedPtr pBufLayout = VertexBufferLayout::create();
+        pBufLayout->addElement("POSITION", 0, ResourceFormat::RGBA32Float, 1, 0);
+        pLayout->addBufferLayout(0, pBufLayout);
+
+        Vao::BufferVec buffers{ spVertexBuffer };
+        spVao = Vao::create(Vao::Topology::TriangleStrip, pLayout, buffers);
+
+        Material::SharedPtr material = Material::create("moof");
+
+        BoundingBox boundingBox = BoundingBox::fromMinMax(glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.7f, 0.7f, 0.7f));
+
+        mpMesh = Mesh::create(buffers, arraysize(kVertices), spIndexBuffer, arraysize(kIndices), pLayout, Vao::Topology::TriangleList, material, boundingBox, false);
+
+        mpModel = Model::create();
+        mpModel->addMeshInstance(mpMesh, glm::mat4());
+        int ijkl = 0;
+
+        // TODO: clean up unused stuff that is created
+    }
+
+    /*
+    // TODO: create a model!
+    {
+        auto vertexBufferLayout = VertexBufferLayout::create();
+        vertexBufferLayout->addElement("POSITION", 0, ResourceFormat::RGBA32Float, 1, 0);
+
+        auto vertexLayout = VertexLayout::create();
+        vertexLayout->addBufferLayout(0, vertexBufferLayout);
+
+        float4 vertices[] = 
+        {
+            { 0.5f, 0.5f, 0.0f, 1.0f },
+            { 0.6f, 0.5f, 0.0f, 1.0f },
+            { 0.6f, 0.6f, 0.0f, 1.0f },
+        };
+
+        Vao::BufferVec bufferVec;
+        bufferVec.push_back(
+
+        Vao::BufferVec vertexBuffer = Vao::create(Topology::TriangleList, vertexLayout, vertices, );
+
+        //mpMesh = Mesh::create();
+        mpModel = Model::create();
+    }
+    */
 }
 
 void ModelViewer::onFrameRender()
@@ -318,8 +248,6 @@ void ModelViewer::onFrameRender()
         mpRenderContext->setGraphicsVars(mpProgramVars);
         ModelRenderer::render(mpRenderContext.get(), mpModel, mpCamera.get());
     }
-
-    renderText(mModelString, glm::vec2(10, 30));
 }
 
 void ModelViewer::onShutdown()

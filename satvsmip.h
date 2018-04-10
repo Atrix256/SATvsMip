@@ -44,16 +44,8 @@ public:
     void onGuiRender() override;
 
 private:
-    void loadModel();
-    void saveModel();
-    void deleteCulledMeshes();
-
-    void loadModelFromFile(const std::string& Filename);
     void resetCamera();
-    void renderModelUI();
-    void setModelString(bool isAfterCull, float LoadTime);
 
-    Model::SharedPtr mpModel = nullptr;
     ModelViewCameraController mModelViewCameraController;
     FirstPersonCameraController mFirstPersonCameraController;
     SixDoFCameraController m6DoFCameraController;
@@ -95,8 +87,17 @@ private:
     DirectionalLight::SharedPtr mpDirLight;
     PointLight::SharedPtr mpPointLight;
 
-    std::string mModelString;
-
     float mNearZ;
     float mFarZ;
+
+
+    // TODO: your naming convention?
+    Buffer::SharedPtr spVertexBuffer;
+    Buffer::SharedPtr spIndexBuffer;
+    Vao::SharedPtr spVao;
+
+    Model::SharedPtr mpModel = nullptr;
+    Mesh::SharedPtr mpMesh = nullptr;
 };
+
+// TODO: clean out stuff you don't care about like cull mode
