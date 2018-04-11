@@ -20,5 +20,11 @@
     <None Include="Data\ModelViewer.ps.glsl">
       <Filter>Data</Filter>
     </None>
+    <None Include="Data\Mesh.ps.slang">
+      <Filter>Data</Filter>
+    </None>
+    <None Include="Data\Mesh.vs.slang">
+      <Filter>Data</Filter>
+    </None>
   </ItemGroup>
 </Project>

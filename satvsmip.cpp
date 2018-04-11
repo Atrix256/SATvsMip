@@ -80,6 +80,15 @@ void ModelViewer::onGuiRender()
 
 void ModelViewer::onLoad()
 {
+    m_mesh.Init(
+        {
+            {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+            {{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+            {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
+        },
+        "Mesh.vs.slang",
+        "Mesh.ps.slang");
+
     mpCamera = Camera::create();
     mpProgram = GraphicsProgram::createFromFile("", appendShaderExtension("ModelViewer.ps"));
 
@@ -118,84 +127,8 @@ void ModelViewer::onLoad()
     mpPointLight = PointLight::create();
     mpDirLight->setWorldDirection(glm::vec3(0.13f, 0.27f, -0.9f));
 
-    mpProgramVars = GraphicsVars::create(mpProgram->getActiveVersion()->getReflector());
     mpGraphicsState = GraphicsState::create();
     mpGraphicsState->setProgram(mpProgram);
-
-    // create a model
-    {
-        struct Vertex
-        {
-            glm::vec4 position;
-        };
-
-        static const Vertex kVertices[] =
-        {
-            { glm::vec4(0.5, 0.5, 0.5, 1.0f) },
-            { glm::vec4(0.7, 0.5, 0.5, 1.0f) },
-            { glm::vec4(0.7, 0.7, 0.5, 1.0f) },
-        };
-
-        static const uint32_t kIndices[] =
-        {
-            0, 1, 2
-        };
-
-        // create vertex buffer
-        const uint32_t vbSize = (uint32_t)(sizeof(Vertex)*arraysize(kVertices));
-        spVertexBuffer = Buffer::create(vbSize, Buffer::BindFlags::Vertex, Buffer::CpuAccess::Write, (void*)kVertices);
-
-        // create index buffer
-        const uint32_t ibSize = (uint32_t)sizeof(kIndices);
-        spIndexBuffer = Buffer::create(ibSize, Buffer::BindFlags::Index, Buffer::CpuAccess::Write, (void*)kIndices);
-
-        // create VAO
-        VertexLayout::SharedPtr pLayout = VertexLayout::create();
-        VertexBufferLayout::SharedPtr pBufLayout = VertexBufferLayout::create();
-        pBufLayout->addElement("POSITION", 0, ResourceFormat::RGBA32Float, 1, 0);
-        pLayout->addBufferLayout(0, pBufLayout);
-
-        Vao::BufferVec buffers{ spVertexBuffer };
-        spVao = Vao::create(Vao::Topology::TriangleStrip, pLayout, buffers);
-
-        Material::SharedPtr material = Material::create("moof");
-
-        BoundingBox boundingBox = BoundingBox::fromMinMax(glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.7f, 0.7f, 0.7f));
-
-        mpMesh = Mesh::create(buffers, arraysize(kVertices), spIndexBuffer, arraysize(kIndices), pLayout, Vao::Topology::TriangleList, material, boundingBox, false);
-
-        mpModel = Model::create();
-        mpModel->addMeshInstance(mpMesh, glm::mat4());
-        int ijkl = 0;
-
-        // TODO: clean up unused stuff that is created
-    }
-
-    /*
-    // TODO: create a model!
-    {
-        auto vertexBufferLayout = VertexBufferLayout::create();
-        vertexBufferLayout->addElement("POSITION", 0, ResourceFormat::RGBA32Float, 1, 0);
-
-        auto vertexLayout = VertexLayout::create();
-        vertexLayout->addBufferLayout(0, vertexBufferLayout);
-
-        float4 vertices[] = 
-        {
-            { 0.5f, 0.5f, 0.0f, 1.0f },
-            { 0.6f, 0.5f, 0.0f, 1.0f },
-            { 0.6f, 0.6f, 0.0f, 1.0f },
-        };
-
-        Vao::BufferVec bufferVec;
-        bufferVec.push_back(
-
-        Vao::BufferVec vertexBuffer = Vao::create(Topology::TriangleList, vertexLayout, vertices, );
-
-        //mpMesh = Mesh::create();
-        mpModel = Model::create();
-    }
-    */
 }
 
 void ModelViewer::onFrameRender()
@@ -204,50 +137,7 @@ void ModelViewer::onFrameRender()
     mpRenderContext->clearFbo(mpDefaultFBO.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
     mpGraphicsState->setFbo(mpDefaultFBO);
 
-    if (mpModel)
-    {
-        mpCamera->setDepthRange(mNearZ, mFarZ);
-        getActiveCameraController().update();
-
-        // Animate
-        if (mAnimate)
-        {
-            PROFILE(animate);
-            mpModel->animate(mCurrentTime);
-        }
-
-        // Set render state
-        if (mDrawWireframe)
-        {
-            mpGraphicsState->setRasterizerState(mpWireframeRS);
-            mpGraphicsState->setDepthStencilState(mpNoDepthDS);
-            mpProgramVars["PerFrameCB"]["gConstColor"] = true;
-        }
-        else
-        {
-            mpGraphicsState->setRasterizerState(mpCullRastState[mCullMode]);
-            mpGraphicsState->setDepthStencilState(mpDepthTestDS);
-            mpProgramVars["PerFrameCB"]["gConstColor"] = false;
-
-            mpDirLight->setIntoConstantBuffer(mpProgramVars["PerFrameCB"].get(), "gDirLight");
-            mpPointLight->setIntoConstantBuffer(mpProgramVars["PerFrameCB"].get(), "gPointLight");
-        }
-
-        if (mUseTriLinearFiltering)
-        {
-            mpModel->bindSamplerToMaterials(mpLinearSampler);
-        }
-        else
-        {
-            mpModel->bindSamplerToMaterials(mpPointSampler);
-        }
-
-        mpProgramVars["PerFrameCB"]["gAmbient"] = mAmbientIntensity;
-        mpGraphicsState->setProgram(mpProgram);
-        mpRenderContext->setGraphicsState(mpGraphicsState);
-        mpRenderContext->setGraphicsVars(mpProgramVars);
-        ModelRenderer::render(mpRenderContext.get(), mpModel, mpCamera.get());
-    }
+    m_mesh.Render(mpRenderContext.get(), nullptr);
 }
 
 void ModelViewer::onShutdown()
@@ -265,7 +155,6 @@ bool ModelViewer::onKeyEvent(const KeyboardEvent& keyEvent)
             switch (keyEvent.key)
             {
             case KeyboardEvent::Key::R:
-                resetCamera();
                 bHandled = true;
                 break;
             }
@@ -287,30 +176,6 @@ void ModelViewer::onResizeSwapChain()
     mpCamera->setFocalLength(21.0f);
     float aspectRatio = (width / height);
     mpCamera->setAspectRatio(aspectRatio);
-}
-
-void ModelViewer::resetCamera()
-{
-    if (mpModel)
-    {
-        // update the camera position
-        float Radius = mpModel->getRadius();
-        const glm::vec3& ModelCenter = mpModel->getCenter();
-        glm::vec3 CamPos = ModelCenter;
-        CamPos.z += Radius * 5;
-
-        mpCamera->setPosition(CamPos);
-        mpCamera->setTarget(ModelCenter);
-        mpCamera->setUpVector(glm::vec3(0, 1, 0));
-
-        // Update the controllers
-        mModelViewCameraController.setModelParams(ModelCenter, Radius, 3.5f);
-        mFirstPersonCameraController.setCameraSpeed(Radius*0.25f);
-        m6DoFCameraController.setCameraSpeed(Radius*0.25f);
-
-        mNearZ = std::max(0.1f, mpModel->getRadius() / 750.0f);
-        mFarZ = Radius * 10;
-    }
 }
 
 #ifdef _WIN32
