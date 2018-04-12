@@ -28,12 +28,22 @@ void ModelViewer::onGuiRender()
 
 void ModelViewer::onLoad()
 {
+    std::vector<Vertex> vertices =
+    {
+        {{-1.0f, -1.0f, -5.0f}, {0.0f, 0.0f}},
+        {{ 1.0f, -1.0f, -5.0f}, {1.0f, 0.0f}},
+        {{ 1.0f,  1.0f, -5.0f}, {1.0f, 1.0f}},
+    };
+
+    for (uint i = 0; i < vertices.size(); ++i)
+    {
+        vertices[i].position.x /= 10.0f;
+        vertices[i].position.y /= 10.0f;
+        vertices[i].position.z /= 10.0f;
+    }
+
     m_mesh.Init(
-        {
-            {{0.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-            {{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-            {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
-        },
+        vertices,
         "Mesh.vs.hlsl",
         "Mesh.ps.hlsl");
 

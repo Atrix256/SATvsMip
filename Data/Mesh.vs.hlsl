@@ -12,7 +12,7 @@ struct VsOut
 VsOut main(float4 position : POSITION, float2 uv : TEXCOORD)
 {
     VsOut vOut;
-    vOut.position = mul(vpMtx, float4(position.xyz, 1.0f));
+    vOut.position = mul(float4(position.xyz, 1.0f), vpMtx);
 	vOut.uv = uv;
     return vOut;
 }

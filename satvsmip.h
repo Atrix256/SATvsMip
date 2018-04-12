@@ -48,7 +48,7 @@ public:
         pBufLayout->addElement("TEXCOORD", 12, ResourceFormat::RG32Float, 1, 1);
         pLayout->addBufferLayout(0, pBufLayout);
         Vao::BufferVec buffers{ m_VB };
-        m_VAO = Vao::create(Vao::Topology::TriangleStrip, pLayout, buffers);
+        m_VAO = Vao::create(Vao::Topology::TriangleList, pLayout, buffers);
 
         m_PipelineState->setVao(m_VAO);
 
@@ -114,10 +114,6 @@ private:
     CameraController& getActiveCameraController();
 
     Camera::SharedPtr mpCamera;
-
-
-    float mNearZ;
-    float mFarZ;
 
     CMesh m_mesh;
 };
