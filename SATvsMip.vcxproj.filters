@@ -12,14 +12,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Data\ModelViewer.ps.hlsl">
-      <Filter>Data</Filter>
-    </FxCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Data\ModelViewer.ps.glsl">
-      <Filter>Data</Filter>
-    </None>
     <None Include="Data\Mesh.ps.slang">
       <Filter>Data</Filter>
     </None>

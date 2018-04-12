@@ -45,31 +45,6 @@ CameraController& ModelViewer::getActiveCameraController()
 
 void ModelViewer::onGuiRender()
 {
-    mpGui->addCheckBox("Wireframe", mDrawWireframe);
-    mpGui->addCheckBox("TriLinear Filtering", mUseTriLinearFiltering);
-
-    Gui::DropdownList cullList;
-    cullList.push_back({ 0, "No Culling" });
-    cullList.push_back({ 1, "Backface Culling" });
-    cullList.push_back({ 2, "Frontface Culling" });
-    mpGui->addDropdown("Cull Mode", cullList, mCullMode);
-
-    if (mpGui->beginGroup("Lights"))
-    {
-        mpGui->addRgbColor("Ambient intensity", mAmbientIntensity);
-        if (mpGui->beginGroup("Directional Light"))
-        {
-            mpDirLight->renderUI(mpGui.get());
-            mpGui->endGroup();
-        }
-        if (mpGui->beginGroup("Point Light"))
-        {
-            mpPointLight->renderUI(mpGui.get());
-            mpGui->endGroup();
-        }
-        mpGui->endGroup();
-    }
-
     Gui::DropdownList cameraDropdown;
     cameraDropdown.push_back({ ModelViewCamera, "Model-View" });
     cameraDropdown.push_back({ FirstPersonCamera, "First-Person" });
@@ -90,45 +65,16 @@ void ModelViewer::onLoad()
         "Mesh.ps.slang");
 
     mpCamera = Camera::create();
-    mpProgram = GraphicsProgram::createFromFile("", appendShaderExtension("ModelViewer.ps"));
-
-    // create rasterizer state
-    RasterizerState::Desc wireframeDesc;
-    wireframeDesc.setFillMode(RasterizerState::FillMode::Wireframe);
-    wireframeDesc.setCullMode(RasterizerState::CullMode::None);
-    mpWireframeRS = RasterizerState::create(wireframeDesc);
-
-    RasterizerState::Desc solidDesc;
-    solidDesc.setCullMode(RasterizerState::CullMode::None);
-    mpCullRastState[0] = RasterizerState::create(solidDesc);
-    solidDesc.setCullMode(RasterizerState::CullMode::Back);
-    mpCullRastState[1] = RasterizerState::create(solidDesc);
-    solidDesc.setCullMode(RasterizerState::CullMode::Front);
-    mpCullRastState[2] = RasterizerState::create(solidDesc);
-
-    // Depth test
-    DepthStencilState::Desc dsDesc;
-    dsDesc.setDepthTest(false);
-    mpNoDepthDS = DepthStencilState::create(dsDesc);
-    dsDesc.setDepthTest(true);
-    mpDepthTestDS = DepthStencilState::create(dsDesc);
 
     mModelViewCameraController.attachCamera(mpCamera);
     mFirstPersonCameraController.attachCamera(mpCamera);
     m6DoFCameraController.attachCamera(mpCamera);
 
     Sampler::Desc samplerDesc;
-    samplerDesc.setFilterMode(Sampler::Filter::Point, Sampler::Filter::Point, Sampler::Filter::Point);
-    mpPointSampler = Sampler::create(samplerDesc);
     samplerDesc.setFilterMode(Sampler::Filter::Linear, Sampler::Filter::Linear, Sampler::Filter::Linear);
     mpLinearSampler = Sampler::create(samplerDesc);
 
-    mpDirLight = DirectionalLight::create();
-    mpPointLight = PointLight::create();
-    mpDirLight->setWorldDirection(glm::vec3(0.13f, 0.27f, -0.9f));
-
     mpGraphicsState = GraphicsState::create();
-    mpGraphicsState->setProgram(mpProgram);
 }
 
 void ModelViewer::onFrameRender()
