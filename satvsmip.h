@@ -61,17 +61,15 @@ public:
 
     void Render(RenderContext* pRenderContext, DepthStencilState::SharedPtr pDsState) const
     {
-        m_PipelineState->pushFbo(pRenderContext->getGraphicsState()->getFbo(), false);
+        m_PipelineState->setFbo(pRenderContext->getGraphicsState()->getFbo(), false);
         m_PipelineState->setViewport(0, pRenderContext->getGraphicsState()->getViewport(0), false);
         m_PipelineState->setScissors(0, pRenderContext->getGraphicsState()->getScissors(0));
 
         m_PipelineState->setVao(m_VAO);
         m_PipelineState->setDepthStencilState(pDsState ? pDsState : m_DepthStencilState);
-        pRenderContext->pushGraphicsState(m_PipelineState);
-        pRenderContext->pushGraphicsVars(m_ProgramVars);
+        pRenderContext->setGraphicsState(m_PipelineState);
+        pRenderContext->setGraphicsVars(m_ProgramVars);
         pRenderContext->draw(m_vertexCount, 0);
-        pRenderContext->popGraphicsState();
-        m_PipelineState->popFbo(false);
     }
 
     Buffer::SharedPtr               m_VB;
@@ -97,29 +95,16 @@ public:
     void onGuiRender() override;
 
 private:
-
-    ModelViewCameraController mModelViewCameraController;
     FirstPersonCameraController mFirstPersonCameraController;
-    SixDoFCameraController m6DoFCameraController;
+    Camera::SharedPtr mpCamera;
 
     Sampler::SharedPtr mpLinearSampler = nullptr;
-
-    enum
-    {
-        ModelViewCamera,
-        FirstPersonCamera,
-        SixDoFCamera
-    } mCameraType = ModelViewCamera;
-
-    CameraController& getActiveCameraController();
-
-    Camera::SharedPtr mpCamera;
 
     CMesh m_mesh;
 };
 
 // TODO: clean out stuff you don't care about like cull mode
 
-// TODO: make the mesh be affected by the camera
+// TODO: maybe make the mesh class stuff part of the normal class?
 
-// TODO: maybe move to hlsl instead of slang
+// TODO: better understand the objects and make sure you are setting them all correctly
