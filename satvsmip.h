@@ -108,3 +108,9 @@ private:
 // TODO: maybe make the mesh class stuff part of the normal class?
 
 // TODO: better understand the objects and make sure you are setting them all correctly
+
+// TODO: sample textures.
+
+// TODO: render side by side viewports, one for mip, one for SAT
+
+// TODO: do the actual SAT vs MIP test

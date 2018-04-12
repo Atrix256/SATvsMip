@@ -53,20 +53,7 @@ void ModelViewer::onShutdown()
 
 bool ModelViewer::onKeyEvent(const KeyboardEvent& keyEvent)
 {
-    bool bHandled = mFirstPersonCameraController.onKeyEvent(keyEvent);
-    if (bHandled == false)
-    {
-        if (keyEvent.type == KeyboardEvent::Type::KeyPressed)
-        {
-            switch (keyEvent.key)
-            {
-            case KeyboardEvent::Key::R:
-                bHandled = true;
-                break;
-            }
-        }
-    }
-    return bHandled;
+    return mFirstPersonCameraController.onKeyEvent(keyEvent);
 }
 
 bool ModelViewer::onMouseEvent(const MouseEvent& mouseEvent)
