@@ -34,8 +34,8 @@ void ModelViewer::onLoad()
             {{1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
             {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f}},
         },
-        "Mesh.vs.slang",
-        "Mesh.ps.slang");
+        "Mesh.vs.hlsl",
+        "Mesh.ps.hlsl");
 
     mpCamera = Camera::create();
 
@@ -53,7 +53,7 @@ void ModelViewer::onFrameRender()
     const glm::vec4 clearColor(0.38f, 0.52f, 0.10f, 1);
     mpRenderContext->clearFbo(mpDefaultFBO.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
 
-    mpCamera->getViewProjMatrix();
+    m_mesh.m_ProgramVars["PerFrameCB"]["vpMtx"] = mpCamera->getViewProjMatrix();
 
     m_mesh.Render(mpRenderContext.get(), nullptr);
 }

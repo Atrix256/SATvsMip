@@ -53,7 +53,7 @@ public:
         m_PipelineState->setVao(m_VAO);
 
         RasterizerState::Desc solidDesc;
-        solidDesc.setCullMode(RasterizerState::CullMode::Back);
+        solidDesc.setCullMode(RasterizerState::CullMode::None);
         m_rasterState = RasterizerState::create(solidDesc);
 
         m_PipelineState->setRasterizerState(m_rasterState);

@@ -9,5 +9,5 @@ struct VsOut
 
 float4 main(VsOut vsout) : SV_TARGET
 {
-    return float4(vsout.position.rgb, 1.0f);
+    return float4(1.0f, 1.0f, 1.0f, 1.0f);
 }
