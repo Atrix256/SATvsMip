@@ -55,6 +55,8 @@ public:
         RasterizerState::Desc solidDesc;
         solidDesc.setCullMode(RasterizerState::CullMode::Back);
         m_rasterState = RasterizerState::create(solidDesc);
+
+        m_PipelineState->setRasterizerState(m_rasterState);
     }
 
     void Render(RenderContext* pRenderContext, DepthStencilState::SharedPtr pDsState) const
@@ -101,8 +103,6 @@ private:
     SixDoFCameraController m6DoFCameraController;
 
     Sampler::SharedPtr mpLinearSampler = nullptr;
-    
-    GraphicsState::SharedPtr mpGraphicsState = nullptr;
 
     enum
     {
@@ -125,3 +125,5 @@ private:
 // TODO: clean out stuff you don't care about like cull mode
 
 // TODO: make the mesh be affected by the camera
+
+// TODO: maybe move to hlsl instead of slang
