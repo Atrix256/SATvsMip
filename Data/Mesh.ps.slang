@@ -3,7 +3,7 @@ SamplerState gSampler;
 
 struct VsOut
 {
-    float4 position : POSITION;
+    float4 position : SV_POSITION;
     float2 uv       : TEXCOORD;
 };
 
