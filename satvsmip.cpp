@@ -12,6 +12,10 @@ void ModelViewer::onLoad()
         {{-1.0f, -1.0f, -5.0f}, {0.0f, 0.0f}},
         {{ 1.0f, -1.0f, -5.0f}, {1.0f, 0.0f}},
         {{ 1.0f,  1.0f, -5.0f}, {1.0f, 1.0f}},
+
+        {{-1.0f, -1.0f, -5.0f}, {0.0f, 0.0f}},
+        {{ 1.0f,  1.0f, -5.0f}, {1.0f, 1.0f}},
+        {{-1.0f,  1.0f, -5.0f}, {0.0f, 1.0f}},
     };
 
     for (uint i = 0; i < vertices.size(); ++i)
@@ -19,9 +23,21 @@ void ModelViewer::onLoad()
         vertices[i].position.x /= 10.0f;
         vertices[i].position.y /= 10.0f;
         vertices[i].position.z /= 10.0f;
+
+        vertices[i].position.x -= 0.25f;
     }
 
-    m_mesh.Init(
+    m_meshLeft.Init(
+        vertices,
+        "Mesh.vs.hlsl",
+        "Mesh.ps.hlsl");
+
+    for (uint i = 0; i < vertices.size(); ++i)
+    {
+        vertices[i].position.x += 0.5f;
+    }
+
+    m_meshRight.Init(
         vertices,
         "Mesh.vs.hlsl",
         "Mesh.ps.hlsl");
@@ -38,12 +54,17 @@ void ModelViewer::onFrameRender()
 {
     mFirstPersonCameraController.update();
 
-    const glm::vec4 clearColor(0.38f, 0.52f, 0.10f, 1);
+    const GraphicsState::Viewport& viewport = mpRenderContext->getGraphicsState()->getViewport(0);
+    const GraphicsState::Scissor& scissors = mpRenderContext->getGraphicsState()->getScissors(0);
+
+    const glm::vec4 clearColor(0.0f, 0.0f, 0.0f, 1.0f);
     mpRenderContext->clearFbo(mpDefaultFBO.get(), clearColor, 1.0f, 0, FboAttachmentType::All);
 
-    m_mesh.m_ProgramVars["PerFrameCB"]["vpMtx"] = mpCamera->getViewProjMatrix();
+    m_meshLeft.m_ProgramVars["PerFrameCB"]["vpMtx"] = mpCamera->getViewProjMatrix();
+    m_meshLeft.Render(mpRenderContext.get(), mpDefaultFBO, viewport, scissors);
 
-    m_mesh.Render(mpRenderContext.get(), nullptr);
+    m_meshRight.m_ProgramVars["PerFrameCB"]["vpMtx"] = mpCamera->getViewProjMatrix();
+    m_meshRight.Render(mpRenderContext.get(), mpDefaultFBO, viewport, scissors);
 }
 
 void ModelViewer::onShutdown()
